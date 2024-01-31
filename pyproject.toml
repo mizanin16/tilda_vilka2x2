@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "vilkaworker"
+version = "0.1.0"
+description = ""
+authors = ["mizanin16 <b_dimon2009@mail.ru>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+django = "^5.0.1"
+requests = "^2.31.0"
+shapely = "^2.0.2"
+djangorestframework = "^3.14.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
