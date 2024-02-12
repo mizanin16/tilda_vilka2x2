@@ -3,17 +3,16 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
-from ....utils.getLogger import logger_errors
-from ....apps.PromoCodeWorker.models import Promocode
-from ....apps.TildaWebhook.models import ListAuthUsers, Delivery
-
-ERROR_RESPONSE: Dict[str, Union[str, Any]] = {"status": "error"}
-SUCCESS_RESPONSE: Dict[str, Union[str, Any]] = {"status": "success"}
+from VilkaWorker.src.utils.getLogger import logger_errors
+from VilkaWorker.src.apps.PromoCodeWorker.models import Promocode
+from VilkaWorker.src.apps.TildaWebhook.models import ListAuthUsers, Delivery
+from VilkaWorker.src.utils.dto_message import *
 
 
 def validate_param(param_name: str, value: Optional[str]) -> Response:
     if not value or not isinstance(value, str):
-        return Response({**ERROR_RESPONSE, "message": f"Invalid or missing {param_name} parameter"})
+        response_json = ResponseJson(status="error", message=f"INVALID_PARAMS:{param_name}")
+        return Response(to_json(response_json))
 
 
 @api_view(["POST"])
@@ -28,14 +27,17 @@ def add_promocode(request) -> Response:
 
     try:
         Promocode.objects.get(code=promo_code)
-        return Response({**ERROR_RESPONSE, "message": "Promo code already exists"})
+        response_json = ResponseJson(status="error", message="PROMOCODE_EXISTS")
+        return Response(to_json(response_json))
     except Promocode.DoesNotExist:
         try:
             Promocode.objects.create(code=promo_code)
-            return Response({**SUCCESS_RESPONSE, "message": "Promo code added successfully"})
+            response_json = ResponseJson(status="success", message="PROMOCODE_ADD")
+            return Response(to_json(response_json))
         except Exception as ex:
             logger_errors.exception(f"Error creating promocode: {ex}")
-            return Response({**ERROR_RESPONSE, "message": "An error occurred while adding promo code"})
+            response_json = ResponseJson(status="error", message="PROMOCODE_NOT_ADD")
+            return Response(to_json(response_json))
 
 
 class PromocodeView(APIView):
@@ -53,7 +55,8 @@ class PromocodeView(APIView):
         try:
             users_with_email = ListAuthUsers.objects.filter(email=email)
             if not users_with_email.exists():
-                return Response({**ERROR_RESPONSE, "message": "User not found"})
+                response_json = ResponseJson(status="error", message="USER_NOT_FOUND")
+                return Response(to_json(response_json))
 
             total_orders_count: int = sum(
                 Delivery.objects.filter(phone=user.phone).count()
@@ -64,15 +67,18 @@ class PromocodeView(APIView):
 
         except Exception as ex:
             logger_errors.exception(f"Error in PromocodeView.get: {ex}")
-            return Response({**ERROR_RESPONSE, "message": "An error occurred while processing the request"})
+            response_json = ResponseJson(status="error", message="ERROR_REQUEST")
+            return Response(to_json(response_json))
 
     def _handle_promocode_request(self, total_orders_count: int) -> Response:
         if total_orders_count % 3 == 2 or total_orders_count == 0:
             first_promocode = Promocode.objects.first()
             if first_promocode and first_promocode.code:
-                return Response({**SUCCESS_RESPONSE, "promocode": first_promocode.code})
+                response_json = ResponseJson(status="success", message='', promocode=first_promocode.code)
+                return Response(to_json(response_json))
         else:
-            return Response({**SUCCESS_RESPONSE, "promocode": "No discount"})
+            response_json = ResponseJson(status="success", message='', promocode="No discount")
+            return Response(to_json(response_json))
 
 
 @api_view(["POST"])
@@ -88,9 +94,11 @@ def remove_promocode(request) -> Response:
     try:
         promocode_obj = Promocode.objects.get(code=promo_code)
         promocode_obj.delete()
-        return Response({**SUCCESS_RESPONSE, "message": "Promo code removed successfully"})
+        response_json = ResponseJson(status="success", message='PROMOCODE_REMOVE')
+        return Response(to_json(response_json))
     except Promocode.DoesNotExist:
-        return Response({**ERROR_RESPONSE, "message": "Promo code not found"})
+        response_json = ResponseJson(status="error", message="PROMOCODE_NOT_FOUND")
+        return Response(to_json(response_json))
     except Exception as ex:
-        logger_errors.exception(f"Error remove_promocode: {ex}")
-        return Response({**ERROR_RESPONSE, "message": "An error occurred during removal"})
+        response_json = ResponseJson(status="error", message="PROMOCODE_NOT_DELETE")
+        return Response(to_json(response_json))

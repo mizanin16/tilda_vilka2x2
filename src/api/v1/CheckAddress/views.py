@@ -1,6 +1,3 @@
-from dataclasses import dataclass
-from typing import List
-
 import requests
 import json
 from django.views.decorators.csrf import csrf_exempt
@@ -8,29 +5,9 @@ from django.http import JsonResponse
 from shapely.geometry import Point, shape
 from requests.exceptions import RequestException
 
-from ....config.settings import YANDEX_API_KEY
-from ....utils.getLogger import logger_errors, logger_events
-
-
-@dataclass
-class GeoObject:
-    pos: str
-
-
-@dataclass
-class Feature:
-    geometry: dict
-    properties: dict
-
-
-@dataclass
-class GeoJSON:
-    features: List[Feature]
-
-
-@dataclass
-class YandexData:
-    response: dict
+from VilkaWorker.src.config.settings import YANDEX_API_KEY
+from VilkaWorker.src.utils.getLogger import logger_errors, logger_events
+from dto import *
 
 
 def get_yandex_data(address: str) -> YandexData:

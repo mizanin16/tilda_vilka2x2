@@ -11,6 +11,8 @@ django = "^5.0.1"
 requests = "^2.31.0"
 shapely = "^2.0.2"
 djangorestframework = "^3.14.0"
+jsondataclass = "^0.3.0"
+python-dotenv = "^1.0.1"
 
 
 [build-system]

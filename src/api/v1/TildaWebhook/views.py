@@ -4,11 +4,13 @@ from rest_framework.views import APIView
 from rest_framework.parsers import JSONParser
 from rest_framework.permissions import AllowAny
 from django.utils import timezone
-from ....utils.numbers import edit_phone
-from ....apps.TildaWebhook.models import ListAuthUsers
+from VilkaWorker.src.utils.numbers import edit_phone
+from VilkaWorker.src.apps.TildaWebhook.models import ListAuthUsers
 from ..PromoCodeWorker.views import remove_promocode
-from ....apps.TildaWebhook.serializers import DeliverySerializer, ListAuthUsersSerializer, PromocodeSerializer
+from VilkaWorker.src.apps.TildaWebhook.serializers import DeliverySerializer, ListAuthUsersSerializer
+from VilkaWorker.src.apps.PromoCodeWorker.serializers import PromocodeSerializer
 from typing import Optional, Dict, Any
+from VilkaWorker.src.utils.dto_message import *
 
 
 class SerializerFacade:
@@ -33,11 +35,12 @@ class BaseTildaWebhookView(APIView):
                 BaseTildaWebhookView._process_promo_code_data(data_from_tilda)
             else:
                 BaseTildaWebhookView._process_delivery_data(data_from_tilda)
-
-            return Response({"status": "success"})
+            response_json = ResponseJson(status="success")
+            return Response(to_json(response_json))
 
         except Exception:
-            return Response({"status": "json error", 'message': 'An error occurred while processing the request'})
+            response_json = ResponseJson(status="error", message="JSON_ERROR")
+            return Response(to_json(response_json))
 
     @staticmethod
     def _process_email_data(data_from_tilda: Dict[str, Any]) -> None:
@@ -103,7 +106,8 @@ class AddUserView(APIView):
             user = ListAuthUsers.objects.filter(email=email, phone=phone).first()
 
             if user:
-                return Response({'status': 'error', 'message': 'User with given email and phone already exists'})
+                response_json = ResponseJson(status="error", message=f"USER_EXIST")
+                return Response(to_json(response_json))
 
             filtered_data: Dict[str, Any] = {
                 'name': name,
@@ -111,12 +115,12 @@ class AddUserView(APIView):
                 'phone': phone,
             }
 
-            serializer = ListAuthUsersSerializer(data=filtered_data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response({'status': 'success', 'message': 'User added successfully'})
-            else:
-                return Response({'status': 'error', 'errors': serializer.errors})
+            serializer = SerializerFacade.create(ListAuthUsersSerializer, filtered_data)
+            serializer.save()
+
+            response_json = ResponseJson(status="success", message="USER_ADD")
+            return Response(to_json(response_json))
 
         except Exception:
-            return Response({'status': 'error', 'message': 'An error occurred while processing the request'})
+            response_json = ResponseJson(status="error", message="ERROR_REQUEST")
+            return Response(to_json(response_json))
